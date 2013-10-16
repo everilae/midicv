@@ -39,7 +39,8 @@ struct Note {
 };
 
 static struct Voice {
-  Note note;
+  Note note = { Note::CLOSED, 0, 0, 0 };
+  uint8_t openNotes = 0;
 } voice;
 
 // Changing these will also requires rewriting audioOn()
@@ -79,7 +80,7 @@ static const uint8_t midiCVTable[128] PROGMEM = {2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4
 void setup() {
   SETUP_DEBUG();
   pinMode(PWM_PIN, OUTPUT);
-  pinMode(ENV_PWM_PIN, OUTPUT);
+  //pinMode(ENV_PWM_PIN, OUTPUT);
   audioOn();
   pinMode(LED_PIN, OUTPUT);
   // setup midi
@@ -96,16 +97,19 @@ void setup() {
       voice.note.pwm = pgm_read_word(&midiCVTable[number]);
       voice.note.velocity = velocity;
       voice.note.gate = Note::OPEN;
-      LED_PORT ^= 1 << LED_BIT;
-    } else if (voice.note.number == number) {
-      voice.note.gate = Note::CLOSED;
-      LED_PORT ^= 1 << LED_BIT;
+      voice.openNotes++;
+      LED_PORT &= ~(1 << LED_BIT);
+    } else {
+      if (voice.openNotes && --voice.openNotes == 0) {
+        voice.note.gate = Note::CLOSED;
+        LED_PORT |= 1 << LED_BIT;
+      }
     }
   };
   Midi.handlers.noteOff = [] (MidiMessage &message) {
-    if (voice.note.number == message.data[0]) {
+    if (voice.openNotes && --voice.openNotes == 0) {
       voice.note.gate = Note::CLOSED;
-      LED_PORT ^= 1 << LED_BIT;
+      LED_PORT |= 1 << LED_BIT;
     }
   };
   voice.note.number = 48;
@@ -119,12 +123,13 @@ void loop() {}
 ISR(PWM_INTERRUPT)
 {
   // Gate
+  /*
   if (voice.note.gate == Note::OPEN) {
-    // Pull-down triggering
     ENV_PWM_VALUE = 0;
   } else {
     ENV_PWM_VALUE = 255;
   }
+  */
   // Always output CV
   PWM_VALUE = voice.note.pwm;
 }
