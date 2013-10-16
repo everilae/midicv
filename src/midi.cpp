@@ -141,28 +141,42 @@ static const uint8_t bytes_to_read_lookup[23] PROGMEM = {
 	// System Common Messages
 	1, 1, 2, 1, 0, 0, 0, 0,
 	// System Real-Time Messages
+	// (Not really needed, but for completeness)
 	0, 0, 0, 0, 0, 0, 0, 0,
 };
 
+// Can not condition system real time handling here, since
+// handling running status requires at least filtering them
+inline constexpr bool isSystemRealTime(uint8_t status) {
+	// System real time = 0xF8 - 0xFF
+	return status >= 0xF8;
+}
+
 void _Midi::eventHandler(uint8_t data) {
 	if (data & 0x80) {
+		if (isSystemRealTime(data)) {
+			// System real time is always without data and
+			// must be handled right away even between data
+			// streams
+			messageHandler(data);
+		}
+		// Begin new channel voice or system common message
 		currentMessage = data;
-		bytesToRead = pgm_read_byte(&bytes_to_read_lookup[denseIndexFromStatus(data)]);
+		bytesLeft = bytesToRead = pgm_read_byte(&bytes_to_read_lookup[denseIndexFromStatus(data)]);
 	} else if (dataBufferPosition < dataBufferSize) {
 		// store data
 		dataBuffer[dataBufferPosition++] = data;
-		bytesToRead--;
+		bytesLeft--;
 	}
 
 	// ... until
-	if (bytesToRead == 0) {
+	if (bytesLeft == 0) {
 		// ... message buffer full, handle message
 		messageHandler(currentMessage);
 		// Reset data buffer
 		dataBufferPosition = 0;
 		// Reset bytes to read (handle running status).
 		// If next byte is a status byte, this is overwritten anyway.
-		// FIXME: make a function, possibly cache value for running status
-		bytesToRead = pgm_read_byte(&bytes_to_read_lookup[denseIndexFromStatus(data)]);
+		bytesLeft = bytesToRead;
 	}
 }
