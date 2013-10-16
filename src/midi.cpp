@@ -160,5 +160,9 @@ void _Midi::eventHandler(uint8_t data) {
 		messageHandler(currentMessage);
 		// Reset data buffer
 		dataBufferPosition = 0;
+		// Reset bytes to read (handle running status).
+		// If next byte is a status byte, this is overwritten anyway.
+		// FIXME: make a function, possibly cache value for running status
+		bytesToRead = pgm_read_byte(&bytes_to_read_lookup[denseIndexFromStatus(data)]);
 	}
 }
