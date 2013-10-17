@@ -145,6 +145,10 @@ static const uint8_t bytes_to_read_lookup[23] PROGMEM = {
 	0, 0, 0, 0, 0, 0, 0, 0,
 };
 
+inline constexpr bool isStatus(uint8_t data) {
+	return data & 0x80;
+}
+
 // Can not condition system real time handling here, since
 // handling running status requires at least filtering them
 inline constexpr bool isSystemRealTime(uint8_t status) {
@@ -153,7 +157,7 @@ inline constexpr bool isSystemRealTime(uint8_t status) {
 }
 
 void _Midi::eventHandler(uint8_t data) {
-	if (data & 0x80) {
+	if (isStatus(data)) {
 		if (isSystemRealTime(data)) {
 			// System real time is always without data and
 			// must be handled right away even between data
