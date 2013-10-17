@@ -159,6 +159,8 @@ void _Midi::eventHandler(uint8_t data) {
 			// must be handled right away even between data
 			// streams
 			messageHandler(data);
+			// No data, ever, and must not disrupt other messages
+			return;
 		}
 		// Begin new channel voice or system common message
 		currentMessage = data;
