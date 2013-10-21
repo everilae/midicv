@@ -168,21 +168,19 @@ void _Midi::eventHandler(uint8_t data) {
 		}
 		// Begin new channel voice or system common message
 		currentMessage = data;
-		bytesLeft = bytesToRead = pgm_read_byte(&bytes_to_read_lookup[denseIndexFromStatus(data)]);
-	} else if (dataBufferPosition < dataBufferSize) {
+		bytesRead = 0;
+		bytesToRead = pgm_read_byte(&bytes_to_read_lookup[denseIndexFromStatus(data)]);
+	} else if (bytesRead < bytesToRead) {
 		// store data
-		dataBuffer[dataBufferPosition++] = data;
-		bytesLeft--;
+		dataBuffer[bytesRead++] = data;
 	}
 
 	// ... until
-	if (bytesLeft == 0) {
+	if (bytesRead == bytesToRead) {
 		// ... message buffer full, handle message
 		messageHandler(currentMessage);
-		// Reset data buffer
-		dataBufferPosition = 0;
 		// Reset bytes to read (handle running status).
 		// If next byte is a status byte, this is overwritten anyway.
-		bytesLeft = bytesToRead;
+		bytesRead = 0;
 	}
 }
