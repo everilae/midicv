@@ -33,9 +33,8 @@ class _Midi {
 	uint8_t channel;
 	uint8_t currentMessage;
 	uint8_t bytesToRead;
-	uint8_t bytesLeft;
+	uint8_t bytesRead;
 	uint8_t dataBuffer[dataBufferSize];
-	size_t dataBufferPosition;
 
 	void messageHandler(uint8_t status);
 
